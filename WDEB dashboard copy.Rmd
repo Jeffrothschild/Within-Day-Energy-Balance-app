@@ -1,0 +1,596 @@
+---
+title: "Within-Day Energy Balance Calculation App"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+runtime: shiny
+resource_files:
+- img/AMPK app.png
+- img/CPI app.png
+- img/RER app.png
+---
+
+```{r setup, include=FALSE}
+
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(shiny)
+library(forcats)
+library(stringr)
+# library(shinyjs)
+library(shinyWidgets)
+library(rhandsontable)
+# library(bslib)
+
+
+intake_df <- tibble(
+  `Hour` = c("12 am", "1 am", "2 am", "3 am", "4 am", "5 am", "6 am", "7 am", "8 am", "9 am", "10 am", "11 am", 
+             "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm", "7 pm", "8 pm", "9 pm", "10 pm", "11 pm"),
+  `Kcal intake` = " ")
+  
+exercise_df <- tibble(
+  `Hour` = c("12 am", "1 am", "2 am", "3 am", "4 am", "5 am", "6 am", "7 am", "8 am", "9 am", "10 am", "11 am", 
+             "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm", "7 pm", "8 pm", "9 pm", "10 pm", "11 pm"),
+  `Kcal burn` = " ")
+
+
+```
+
+
+```{css my-content, echo = FALSE}
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:300&display=swap');
+
+
+.navbar-brand{
+    font-family: "Montserrat", sans-serif;
+    font-size: 21px;
+    line-height: 22px;
+    height: 50px;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: "Montserrat",sans-serif;
+    color: #111111;
+}
+
+h3 {
+    font-size: 22px;
+    color: #222222;
+    font-weight: 360;
+    margin-top: 30px;
+    margin-bottom: 5px;
+}
+
+
+h4 {
+    font-size: 24px;
+    font-weight: 360;
+    text-align: center;
+}
+
+#section-within-day-energy-balance-1 h4 {
+     text-align: left;
+}
+
+p {
+    color: #333333;
+}
+
+
+.section-level2-dashboard-column{
+    font-size: 32px;
+}
+
+.navbar-inverse {
+    background-color: #000000;
+    border-color: #000000;
+}
+
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:hover, .navbar-inverse .navbar-nav>.active>a:focus {
+    color: #ffffff;
+    background-color: #bb0077;
+}
+
+.navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus {
+    color: #ffffff;
+    background-color: #555555;
+}
+
+
+.chart-title {
+    color: #333333;
+    background-color: #ebebeb;
+    font-size: 18px;
+}
+
+body {
+    font-family: "Roboto", sans-serif;
+    font-size: 15px;
+    color: #222222;
+    background-color: #ffffff;
+}
+
+
+#section-within-day-energy-balance-1{
+     font-size: 20px;
+}
+
+.shiny-text-output.shiny-bound-output{
+    font-size: 26px;
+    text-align: center;
+}
+
+.section.sidebar {
+    background-color: #ebebeb;
+    color: #444444
+}
+
+
+.section.column {
+    background-color: #ebebeb;
+   border-color: #ebebeb;
+}
+
+
+
+/* BUTTONS */
+.btn-primary {
+    color: #ffffff;
+    background-color: #000000;
+    border-color: #000000
+}
+
+.btn-primary:focus,.btn-primary.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:hover {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active,.btn-primary.active,.open>.dropdown-toggle.btn-primary {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active:hover,.btn-primary.active:hover,.open>.dropdown-toggle.btn-primary:hover,.btn-primary:active:focus,.btn-primary.active:focus,.open>.dropdown-toggle.btn-primary:focus,.btn-primary:active.focus,.btn-primary.active.focus,.open>.dropdown-toggle.btn-primary.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active,.btn-primary.active,.open>.dropdown-toggle.btn-primary {
+    background-image: none
+}
+
+.btn-primary.disabled:hover,.btn-primary[disabled]:hover,fieldset[disabled] .btn-primary:hover,.btn-primary.disabled:focus,.btn-primary[disabled]:focus,fieldset[disabled] .btn-primary:focus,.btn-primary.disabled.focus,.btn-primary[disabled].focus,fieldset[disabled] .btn-primary.focus {
+    background-color: #222222;
+    border-color: #000000
+}
+
+.btn-primary .badge {
+    color: #222222;
+    background-color: #ffffff
+}
+
+
+
+
+footer {
+    font-size: 10px;
+}
+
+
+
+
+```
+
+
+
+# Calculate {.tabset}
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+```{r sidebar}
+
+# useShinyjs(rmd = T)
+
+br()
+
+numericInput(
+  inputId = "weight",
+  label = "Enter body weight",
+  value = 70,
+  min = 30,
+  max = 300,
+  width = "100%"
+)
+
+shinyWidgets::radioGroupButtons(
+    inputId = "weight_unit",
+    label = "Body weight unit",
+    choices = c("kg", "lb"),
+    selected = "kg", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+hr()
+
+numericInput(
+  inputId = "height",
+  label = "Enter height",
+  value = 180,
+  min = 1,
+  max = 250,
+  width = "100%"
+)
+
+shinyWidgets::radioGroupButtons(
+    inputId = "height_unit",
+    label = "Height unit",
+    choices = c("cm", "in"),
+    selected = "cm", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+hr()
+
+numericInput(
+  inputId = "age",
+  label = "Enter age",
+  value = 30,
+  min = 15,
+  max = 100,
+  width = "100%"
+)
+
+hr()
+
+shinyWidgets::radioGroupButtons(
+    inputId = "sex",
+    label = "Sex",
+    choices = c("Male", "Female"),
+    selected = "Male", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+br()
+hr()
+
+# actionButton(inputId = "apply", label = "Apply", icon = icon("play"))
+# actionButton(inputId = "reset", label = "Reset", icon = icon("sync"))
+
+
+#event reactives
+
+
+
+```
+
+<br><br><br><br><br><br><br><br><br>
+<footer id="main-footer" >
+		<p>Copyright &copy; 2022 Jeff Rothschild</p>
+	</footer>
+
+
+```{r baseline tbl}
+
+  baseline_tbl <- reactive({
+    tibble(wt_kg = input$weight,
+           ht_cm = input$height,
+           age = input$age) %>% 
+  mutate(
+      wt_kg =  ifelse(input$weight_unit == "kg", wt_kg, wt_kg/2.2),
+      ht_cm = ifelse(input$height_unit == "cm", ht_cm, ht_cm *2.54),
+      harris = ifelse(input$sex == "Male", (66.5+(13.75*wt_kg)+(5.003*ht_cm)-(6.775*age)), (655.1+(9.5663*wt_kg)+(1.85*ht_cm)-(4.676*age))),
+     mifflin = ifelse(input$sex == "Male", (9.99*wt_kg)+(6.25*ht_cm)-(4.92*age)+5, (9.99*wt_kg)+(6.25*ht_cm)-(4.92*age)-161 ),
+     simple = ifelse(input$sex == "Male", 1* wt_kg*24, (0.9*wt_kg*24)),
+     mean_REE = mean(c(mifflin, harris, simple), na.rm = T),
+     daily_nonexercise_needs = mean_REE * 1.2,
+    hourly_nonexercise_burn = daily_nonexercise_needs/24
+  )
+
+  })
+
+# renderPrint(baseline_tbl())
+```
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+
+
+### Intake
+
+Enter your calorie intake for each hour of the day  
+
+
+
+```{r}
+  
+  output$table <- renderRHandsontable({
+    rhandsontable(intake_df, rowHeaders = NULL) %>%  ## need to call converter
+      hot_col("Hour", readOnly = TRUE,  colWidths= 75) %>% 
+      hot_col("Kcal intake", colWidths= 120, halign = "htCenter") %>% 
+            hot_validate_numeric(cols = 2, min = 0, max = 4000)
+
+  })
+
+  rHandsontableOutput("table")
+
+  
+  intake_tbl <- reactive({
+    hot_to_r(req(input$table)) %>% as_tibble()  
+  })
+
+```
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+
+### Exercise 
+
+Enter your calories burned during exercise for each hour  
+
+
+```{r}
+  
+  output$table_exer <- renderRHandsontable({
+    rhandsontable(exercise_df, rowHeaders = NULL) %>%  ## need to call converter
+      hot_col("Hour", readOnly = TRUE,  colWidths= 75) %>% 
+      hot_col("Kcal burn", colWidths= 120, halign = "htCenter") %>%   
+          hot_cell(1, 2, "For exercise lasting longer than 1 hr, enter your kcal burn for each hour rather than the full workout kcal burn into one hour.
+")
+  })
+
+  rHandsontableOutput("table_exer")
+
+  
+    joined_tbl <- reactive({
+    hot_to_r(req(input$table_exer)) %>% as_tibble()  %>% 
+        left_join(intake_tbl(), by = "Hour") %>% 
+        rename("exercise_calorie_burn" = "Kcal burn",
+               "food_intake_calories" = "Kcal intake",
+               "hour" = "Hour"
+               ) %>% 
+        mutate(
+          hour = fct_inorder(hour),
+          across(exercise_calorie_burn:food_intake_calories, ~as.numeric(.)),
+          nonexercise_burn = c(
+            rep(baseline_tbl()$hourly_nonexercise_burn * .9, 5),
+            rep(baseline_tbl()$hourly_nonexercise_burn, 17),
+            rep(baseline_tbl()$hourly_nonexercise_burn * .9, 2)
+          ),
+          epoc = dplyr::lag(exercise_calorie_burn) * .05,
+          epoc2 = dplyr::lag(exercise_calorie_burn, 2) * .03,
+          across(exercise_calorie_burn:epoc2, ~ ifelse(is.na(.), 0, .)),
+          nonexercise_burn = ifelse(exercise_calorie_burn > 0, 0, nonexercise_burn),
+          EB  = 0 - nonexercise_burn - exercise_calorie_burn + food_intake_calories - epoc - epoc2,
+          cumulative = 100 + cumsum(EB),
+          hour2 = seq(0,23,1)
+  )
+  })
+
+
+       total_needs <- reactive({
+      round((sum(joined_tbl()$nonexercise_burn, na.rm = T)) + (sum(joined_tbl()$exercise_calorie_burn)) -+ 
+  (sum(joined_tbl()$epoc, na.rm = T)) +   (sum(joined_tbl()$epoc2, na.rm = T)) )
+    })
+    
+       
+    net_kcal <- reactive({
+      (sum(joined_tbl()$food_intake_calories, na.rm = T)) - (sum(joined_tbl()$nonexercise_burn)) - 
+  (sum(joined_tbl()$exercise_calorie_burn, na.rm = T)) 
+    })
+    
+
+
+    
+```
+
+
+
+
+
+Column {data-width=400}
+---------------------------------------------------------------
+
+### Within-day energy balance
+
+```{r}
+
+p <- reactive({
+  
+joined_tbl() %>% 
+  ggplot(aes(hour2, cumulative))+
+  geom_hline(yintercept = 0, linetype = 1, color = "black")+
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -300, ymax = 300, fill = 'green', alpha = .2) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -500, ymax = -300, fill = 'orange', alpha = .2) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 300, ymax = 500, fill = 'orange', alpha = .2) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -500, ymax = -Inf, fill = '#bb001a', alpha = .2) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = 500, ymax = Inf, fill = '#bb001a', alpha = .2) +
+
+  annotate("text",  x = 0, y = max(joined_tbl()$food_intake_calories + 200), label = paste0("Daily net balance: \n", round(net_kcal()), " kcal"), hjust = 0)+
+  geom_col(aes(hour2, food_intake_calories),fill = "darkgreen")+
+  geom_col(aes(hour2, - exercise_calorie_burn),fill = "red") +
+  geom_smooth(se = FALSE)+
+  geom_label(aes(hour2, food_intake_calories, label = ifelse(food_intake_calories >0, food_intake_calories, NA)), vjust = -.3, alpha = .6)+
+  geom_label(aes(hour2, -exercise_calorie_burn, label = ifelse(exercise_calorie_burn >0, - exercise_calorie_burn, NA)), vjust = 1.3, alpha = .6) +
+  #
+  scale_x_continuous(breaks = c(0, 4, 8, 12, 16, 20), labels = c( "12 am", "4 am", "8 am", "12 pm", "4 pm", "8 pm"))+
+  labs(x = NULL, y = "Kcal", subtitle = "Exercise shown in red, food intake shown in green\nBlue line indicates  hourly energy balance")+
+    theme(
+      axis.text = element_text(size = 14, face = "bold"),
+      axis.title =  element_text(size = 16, face = "bold")
+    )
+
+})
+
+
+renderPlot(p(),  height = 400)
+
+```
+
+### Estimated Daily Energy Expenditure
+
+```{r}
+
+renderText(paste0(total_needs(), " kcal"))
+
+
+```
+
+
+
+# Learn
+
+
+#### Within-day Energy Balance
+
+Although many people think that daily calorie balance is the only thing that matters, more and more research has been showing that the distribution of calories within the day actually matters quite a lot too.
+
+<br>
+  
+Larger within-day energy deficiencies have been associated with hormonal dysfunction and even a reduced metabolic rate in both <a href="https://journals.humankinetics.com/view/journals/ijsnem/28/4/article-p419.xml" target="_blank">male</a> and <a href="https://onlinelibrary.wiley.com/doi/10.1111/sms.13030" target="_blank">female</a> endurance athletes. While deficits are not inherently bad, we just want to avoid spending too much time in too large of a deficit.  
+<br>
+  
+This app was created as a tool for identifying large within-day surplus or deficits in someone's diet. The estimated resting metabolic rate is calculated as the average of three equations: Harris-Benedict, Mifflin St. Jeor, and a simple calculation of 24 kcal/kg for men and 21.6 kcal/kg for women. An additional 20% is added for general day-to-day activities. The non-exercise calorie expenditure is split across 24 hours, with a 10% reduction between 10 pm - 5 am. During hours when exercise is performed, the resting energy expenditure is removed because any measure of calorie expenditure provided by devices/smartwatches/etc. would likely include the resting expenditure. To account for excess post-exercise oxygen consumption (and in line with <a href="https://onlinelibrary.wiley.com/doi/10.1111/sms.13030" target="_blank">published research</a> in this area), an additional 5% of calorie expenditure was added during the subsequent hour, and 3% was added the hour after that. 
+
+<br>
+
+Learn more about my research <a href="https://jeff-rothschild.netlify.app/" target="_blank">here</a> and check out my other apps!
+
+<br>
+```{r}
+hr()
+
+```
+
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/RER_dashboard/" target="_blank">Substrate oxidation app</a> 
+
+```{r RER, echo = F,  out.width = '90%'}
+
+
+renderImage({
+    
+    #
+  # detect <- "RER app"
+  #   
+  #   directory_files <-  fs::dir_ls("img/") 
+  #  detection_results <-  directory_files %>% 
+  #       str_detect(pattern = str_glue("img/{detect}"))
+  #  
+  #  path <- directory_files[detection_results]
+   
+   list(
+       src = "img/RER app.jpg",
+       contentType = "image/png",
+       width = "90%",
+       alt = "RER app"
+   )
+  
+}, deleteFile = F )
+
+# knitr::include_graphics("/Users/jeffrothschild/Desktop/RER app.png")
+
+```
+
+
+
+### Contact
+
+Email any questions/comments - jeff@eatsleep.fit
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/carb-index-app/" target="_blank">Carbohydrate Periodization Index app</a> 
+
+
+```{r CPI, echo = F,  out.width = '90%'}
+# knitr::include_graphics("CPI app.png", error = FALSE)
+
+renderImage({
+    
+    #
+  detect <- "CPI app"
+    
+    directory_files <-  fs::dir_ls("img/") 
+   detection_results <-  directory_files %>% 
+        str_detect(pattern = str_glue("img/{detect}"))
+   
+   path <- directory_files[detection_results]
+   
+   list(
+       src = path,
+       contentType = "image/png",
+       width = "90%",
+       alt = detect
+   )
+  
+}, deleteFile = F )
+
+```
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/AMPK_dashboard/" target="_blank">AMPK activation app</a> 
+
+
+```{r AMPK, echo = F, out.width = '90%'}
+
+renderImage({
+    
+    #
+  detect <- "AMPK app"
+    
+    directory_files <-  fs::dir_ls("img/") 
+   detection_results <-  directory_files %>% 
+        str_detect(pattern = str_glue("img/{detect}"))
+   
+   path <- directory_files[detection_results]
+   
+   list(
+       src = path,
+       contentType = "image/png",
+       width = "90%",
+       alt = detect
+   )
+  
+}, deleteFile = F )
+# knitr::include_graphics("AMPK app.png", error = FALSE)
+```
+
+
+<br>
+
+
+
+

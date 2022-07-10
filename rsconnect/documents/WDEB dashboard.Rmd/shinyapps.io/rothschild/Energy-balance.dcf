@@ -1,0 +1,13 @@
+name: Energy-balance
+title: Energy-balance
+username:
+account: rothschild
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6604642
+bundleId: 6085145
+url: https://rothschild.shinyapps.io/Energy-balance/
+when: 1657443625.72304
+lastSyncTime: 1657443625.72307
+asMultiple: FALSE
+asStatic: FALSE

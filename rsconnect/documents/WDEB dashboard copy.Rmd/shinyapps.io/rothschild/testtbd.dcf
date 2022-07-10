@@ -1,0 +1,13 @@
+name: testtbd
+title: testtbd
+username:
+account: rothschild
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6609180
+bundleId: 6080192
+url: https://rothschild.shinyapps.io/testtbd/
+when: 1657240256.7448
+lastSyncTime: 1657240256.74481
+asMultiple: FALSE
+asStatic: FALSE

@@ -1,0 +1,421 @@
+---
+title: "Within-Day Energy Balance Calculation App"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+runtime: shiny
+
+
+---
+
+
+
+
+```{r setup, include=FALSE}
+
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(shiny)
+library(forcats)
+library(stringr)
+# library(shinyjs)
+library(shinyWidgets)
+library(rhandsontable)
+# library(bslib)
+
+
+
+intake_df <- tibble(
+  `Hour` = c("12 am", "1 am", "2 am", "3 am", "4 am", "5 am", "6 am", "7 am", "8 am", "9 am", "10 am", "11 am", 
+             "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm", "7 pm", "8 pm", "9 pm", "10 pm", "11 pm"),
+  `Kcal intake` = " ")
+  
+exercise_df <- tibble(
+  `Hour` = c("12 am", "1 am", "2 am", "3 am", "4 am", "5 am", "6 am", "7 am", "8 am", "9 am", "10 am", "11 am", 
+             "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm", "7 pm", "8 pm", "9 pm", "10 pm", "11 pm"),
+  `Kcal burn` = " ")
+
+
+```
+
+
+```{css my-content, echo = FALSE}
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Roboto:300&display=swap');
+
+
+.navbar-brand{
+    font-family: "Montserrat", sans-serif;
+    font-size: 21px;
+    line-height: 22px;
+    height: 50px;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: "Montserrat",sans-serif;
+    color: #111111;
+}
+
+h3 {
+    font-size: 22px;
+    color: #222222;
+    font-weight: 360;
+    margin-top: 30px;
+    margin-bottom: 5px;
+}
+
+
+h4 {
+    font-size: 24px;
+    font-weight: 360;
+}
+
+
+p {
+    color: #333333;
+}
+
+
+.section-level2-dashboard-column{
+    font-size: 32px;
+}
+
+.navbar-inverse {
+    background-color: #000000;
+    border-color: #000000;
+}
+
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:hover, .navbar-inverse .navbar-nav>.active>a:focus {
+    color: #ffffff;
+    background-color: #bb0077;
+}
+
+.navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus {
+    color: #ffffff;
+    background-color: #555555;
+}
+
+
+.chart-title {
+    color: #333333;
+    background-color: #ebebeb;
+    font-size: 18px;
+}
+
+body {
+    font-family: "Roboto", sans-serif;
+    font-size: 15px;
+    color: #222222;
+    background-color: #ffffff;
+}
+
+
+#section-within-day-energy-balance-1{
+     font-size: 20px;
+}
+
+.shiny-text-output.shiny-bound-output{
+    font-size: 26px;
+    text-align: center;
+}
+
+.section.sidebar {
+    background-color: #ebebeb;
+    color: #444444
+}
+
+
+.section.column {
+    background-color: #ebebeb;
+   border-color: #ebebeb;
+}
+
+
+
+/* BUTTONS */
+.btn-primary {
+    color: #ffffff;
+    background-color: #000000;
+    border-color: #000000
+}
+
+.btn-primary:focus,.btn-primary.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:hover {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active,.btn-primary.active,.open>.dropdown-toggle.btn-primary {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active:hover,.btn-primary.active:hover,.open>.dropdown-toggle.btn-primary:hover,.btn-primary:active:focus,.btn-primary.active:focus,.open>.dropdown-toggle.btn-primary:focus,.btn-primary:active.focus,.btn-primary.active.focus,.open>.dropdown-toggle.btn-primary.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-primary:active,.btn-primary.active,.open>.dropdown-toggle.btn-primary {
+    background-image: none
+}
+
+.btn-primary.disabled:hover,.btn-primary[disabled]:hover,fieldset[disabled] .btn-primary:hover,.btn-primary.disabled:focus,.btn-primary[disabled]:focus,fieldset[disabled] .btn-primary:focus,.btn-primary.disabled.focus,.btn-primary[disabled].focus,fieldset[disabled] .btn-primary.focus {
+    background-color: #222222;
+    border-color: #000000
+}
+
+.btn-primary .badge {
+    color: #222222;
+    background-color: #ffffff
+}
+
+
+
+
+footer {
+    font-size: 10px;
+}
+
+
+
+
+```
+
+
+
+# Calculate {.tabset}
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+```{r sidebar}
+
+# useShinyjs(rmd = T)
+
+br()
+
+numericInput(
+  inputId = "weight",
+  label = "Enter body weight",
+  value = 70,
+  min = 30,
+  max = 300,
+  width = "100%"
+)
+
+shinyWidgets::radioGroupButtons(
+    inputId = "weight_unit",
+    label = "Body weight unit",
+    choices = c("kg", "lb"),
+    selected = "kg", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+hr()
+
+numericInput(
+  inputId = "height",
+  label = "Enter height",
+  value = 180,
+  min = 1,
+  max = 250,
+  width = "100%"
+)
+
+shinyWidgets::radioGroupButtons(
+    inputId = "height_unit",
+    label = "Height unit",
+    choices = c("cm", "in"),
+    selected = "cm", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+hr()
+
+numericInput(
+  inputId = "age",
+  label = "Enter age",
+  value = 30,
+  min = 15,
+  max = 100,
+  width = "100%"
+)
+
+hr()
+
+shinyWidgets::radioGroupButtons(
+    inputId = "sex",
+    label = "Sex",
+    choices = c("Male", "Female"),
+    selected = "Male", 
+    status = "primary",
+    justified = T,
+    checkIcon = list(
+        yes = icon("ok", lib = "glyphicon")
+     )
+)
+
+br()
+hr()
+
+# actionButton(inputId = "apply", label = "Apply", icon = icon("play"))
+# actionButton(inputId = "reset", label = "Reset", icon = icon("sync"))
+
+
+#event reactives
+
+
+
+```
+
+
+
+# Learn
+
+
+#### Within-day Energy Balance
+
+Although many people think that daily calorie balance is the only thing that matters, more and more research has been showing that the distribution of calories within the day actually matters quite a lot too.
+
+<br>
+  
+Larger within-day energy deficiencies have been associated with hormonal dysfunction and even a reduced metabolic rate in both <a href="https://journals.humankinetics.com/view/journals/ijsnem/28/4/article-p419.xml" target="_blank">male</a> and <a href="https://onlinelibrary.wiley.com/doi/10.1111/sms.13030" target="_blank">female</a> endurance athletes. While deficits are not inherently bad, we just want to avoid spending too much time in too large of a deficit.  
+<br>
+  
+This app was created as a tool for identifying large within-day surplus or deficits in someone's diet. The estimated resting metabolic rate is calculated as the average of three equations: Harris-Benedict, Mifflin St. Jeor, and a simple calculation of 24 kcal/kg for men and 21.6 kcal/kg for women. An additional 20% is added for general day-to-day activities. The non-exercise calorie expenditure is split across 24 hours, with a 10% reduction between 10 pm - 5 am. During hours when exercise is performed, the resting energy expenditure is removed because any measure of calorie expenditure provided by devices/smartwatches/etc. would likely include the resting expenditure. To account for excess post-exercise oxygen consumption (and in line with <a href="https://onlinelibrary.wiley.com/doi/10.1111/sms.13030" target="_blank">published research</a> in this area), an additional 5% of calorie expenditure was added during the subsequent hour, and 3% was added the hour after that. 
+
+<br>
+
+Learn more about my research <a href="https://jeff-rothschild.netlify.app/" target="_blank">here</a> and check out my other apps!
+
+<br>
+```{r}
+hr()
+
+```
+
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/RER_dashboard/" target="_blank">Substrate oxidation app</a> 
+
+```{r RER, echo = F,  out.width = '90%'}
+
+
+renderImage({
+    
+    #
+  detect <- "RER app"
+    
+    directory_files <-  fs::dir_ls("img/") 
+   detection_results <-  directory_files %>% 
+        str_detect(pattern = str_glue("img/{detect}"))
+   
+   path <- directory_files[detection_results]
+   
+   list(
+       src = path,
+       contentType = "image/png",
+       width = "90%",
+       alt = detect
+   )
+  
+}, deleteFile = F )
+
+# knitr::include_graphics("/Users/jeffrothschild/Desktop/RER app.png")
+
+```
+
+<br>
+
+
+### Contact
+
+Email any questions/comments - jeff@eatsleep.fit
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/carb-index-app/" target="_blank">Carbohydrate Periodization Index app</a> 
+
+
+```{r CPI, echo = F,  out.width = '90%'}
+# knitr::include_graphics("CPI app.png", error = FALSE)
+
+renderImage({
+    
+    #
+  detect <- "CPI app"
+    
+    directory_files <-  fs::dir_ls("img/") 
+   detection_results <-  directory_files %>% 
+        str_detect(pattern = str_glue("img/{detect}"))
+   
+   path <- directory_files[detection_results]
+   
+   list(
+       src = path,
+       contentType = "image/png",
+       width = "90%",
+       alt = detect
+   )
+  
+}, deleteFile = F )
+
+```
+
+
+Column {data-width=200}
+---------------------------------------------------------------
+#### <a href="https://rothschild.shinyapps.io/AMPK_dashboard/" target="_blank">AMPK activation app</a> 
+
+
+```{r AMPK, echo = F, out.width = '90%'}
+
+renderImage({
+    
+    #
+  detect <- "AMPK app"
+    
+    directory_files <-  fs::dir_ls("img/") 
+   detection_results <-  directory_files %>% 
+        str_detect(pattern = str_glue("img/{detect}"))
+   
+   path <- directory_files[detection_results]
+   
+   list(
+       src = path,
+       contentType = "image/png",
+       width = "90%",
+       alt = detect
+   )
+  
+}, deleteFile = F )
+# knitr::include_graphics("AMPK app.png", error = FALSE)
+```
+
+
+<br>
+
+
+
+
