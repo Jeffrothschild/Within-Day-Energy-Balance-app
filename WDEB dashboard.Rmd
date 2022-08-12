@@ -18,10 +18,9 @@ library(dplyr)
 library(ggplot2)
 library(shiny)
 library(forcats)
-# library(shinyjs)
 library(shinyWidgets)
 library(rhandsontable)
-# library(bslib)
+library(shinyscreenshot)
 
 
 intake_df <- tibble(
@@ -70,9 +69,28 @@ h4 {
     text-align: center;
 }
 
+h5 {
+    text-align: center;
+}
+
 #section-within-day-energy-balance-1 h4 {
      text-align: left;
 }
+
+
+
+#section-estimated-daily-energy-expenditure {
+    flex: 120 497.703 120px !important;
+}
+
+
+#go {
+    padding-right: 70px;
+    padding-left: 70px;
+
+}
+
+
 
 p {
     color: #333333;
@@ -182,6 +200,51 @@ body {
 
 
 
+.btn-default {
+    color: #ffffff;
+    background-color: #000000;
+    border-color: #000000
+}
+
+.btn-default:focus,.btn-default.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-default:hover {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-default:active,.btn-default.active,.open>.dropdown-toggle.btn-default {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-default:active:hover,.btn-default.active:hover,.open>.dropdown-toggle.btn-default:hover,.btn-default:active:focus,.btn-default.active:focus,.open>.dropdown-toggle.btn-default:focus,.btn-default:active.focus,.btn-default.active.focus,.open>.dropdown-toggle.btn-default.focus {
+    color: #ffffff;
+    background-color: #bb0077;
+    border-color: #000000
+}
+
+.btn-default:active,.btn-default.active,.open>.dropdown-toggle.btn-default {
+    background-image: none
+}
+
+.btn-default.disabled:hover,.btn-default[disabled]:hover,fieldset[disabled] .btn-default:hover,.btn-default.disabled:focus,.btn-default[disabled]:focus,fieldset[disabled] .btn-default:focus,.btn-default.disabled.focus,.btn-default[disabled].focus,fieldset[disabled] .btn-default.focus {
+    background-color: #222222;
+    border-color: #000000
+}
+
+.btn-default .badge {
+    color: #222222;
+    background-color: #ffffff
+}
+
+
 
 footer {
     font-size: 10px;
@@ -277,6 +340,14 @@ shinyWidgets::radioGroupButtons(
 br()
 hr()
 
+h4("Area < -300 kcal")
+
+h5("Aim to minimize this number!")
+
+renderText(auc())
+
+
+
 # actionButton(inputId = "apply", label = "Apply", icon = icon("play"))
 # actionButton(inputId = "reset", label = "Reset", icon = icon("sync"))
 
@@ -359,13 +430,13 @@ Enter your calories burned during exercise for each hour
   output$table_exer <- renderRHandsontable({
     rhandsontable(exercise_df, rowHeaders = NULL) %>%  ## need to call converter
       hot_col("Hour", readOnly = TRUE,  colWidths= 75) %>% 
-      hot_col("Kcal burn", colWidths= 120, halign = "htCenter") %>%   
-          hot_cell(1, 2, "For exercise lasting longer than 1 hr, enter your kcal burn for each hour rather than the full workout kcal burn into one hour.
-")  %>% 
-            hot_validate_numeric(cols = 2, min = 0, max = 4000)
+      hot_col("Kcal burn", colWidths= 120, halign = "htCenter")# %>%   
+          # hot_cell(1, 2, "For exercise lasting longer than 1 hr, enter your kcal burn for each hour rather than the full workout kcal burn into one hour.")
   })
 
-  rHandsontableOutput("table_exer")
+
+column(12, fluidRow(rHandsontableOutput("table_exer")))
+
 
   
     joined_tbl <- reactive({
@@ -405,8 +476,12 @@ Enter your calories burned during exercise for each hour
   (sum(joined_tbl()$exercise_calorie_burn, na.rm = T)) 
     })
     
+br()
 
 ```
+
+
+*For exercise lasting longer than 1 hr, enter your kcal burn for each hour rather than the full workout kcal burn into one hour. 
 
 
 
@@ -449,6 +524,27 @@ renderPlot(p(),  height = 400)
 
 ```
 
+
+```{r auc}
+auc <- reactive({
+  smoother <-   joined_tbl() %>% 
+  ggplot(aes(hour2, cumulative))+
+  geom_smooth(se = FALSE)
+  
+  ggp_data <- ggplot_build(smoother)$data[[1]] %>% 
+  filter(y < -300)
+
+  if (nrow(ggp_data) == 0){
+      "0"
+      } else {
+          abs(round(MESS::auc(ggp_data$x, ggp_data$y+300)))
+}
+})
+
+
+```
+
+
 ### Estimated Daily Energy Expenditure
 
 ```{r}
@@ -458,6 +554,20 @@ renderText(paste0(total_needs(), " kcal"))
 
 ```
 
+
+### Want to save a Picture?
+
+```{r}
+
+actionButton("go", "Click here")
+
+ observeEvent(input$go, {
+    screenshot(
+        filename = "energy_balance_app"
+    )
+  })
+
+```
 
 
 
