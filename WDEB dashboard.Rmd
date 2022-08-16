@@ -20,7 +20,8 @@ library(shiny)
 library(forcats)
 library(shinyWidgets)
 library(rhandsontable)
-library(shinyscreenshot)
+# library(shinyscreenshot)
+library(downloadthis)
 
 
 intake_df <- tibble(
@@ -340,7 +341,7 @@ shinyWidgets::radioGroupButtons(
 br()
 hr()
 
-h4("Area < -300 kcal")
+h4("Area below -300 kcal")
 
 h5("Aim to minimize this number!")
 
@@ -537,7 +538,7 @@ auc <- reactive({
   if (nrow(ggp_data) == 0){
       "0"
       } else {
-          abs(round(MESS::auc(ggp_data$x, ggp_data$y+300)))
+          as.integer(abs(round(MESS::auc(ggp_data$x, ggp_data$y+300))))
 }
 })
 
@@ -555,20 +556,57 @@ renderText(paste0(total_needs(), " kcal"))
 ```
 
 
-### Want to save a Picture?
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
-actionButton("go", "Click here")
+### Want to save a picture?
 
- observeEvent(input$go, {
-    screenshot(
-        filename = "energy_balance_app"
-    )
-  })
+
+# actionButton("go", "Click here")
+# 
+#  observeEvent(input$go, {
+#     screenshot(
+#         filename = "energy_balance_app"
+#     )
+#   })
 
 ```
 
+
+### Want to download a summary?
+
+```{r}
+
+ for_xport <- reactive({
+     tibble(
+         "Date" = as.character(Sys.Date()),
+         "Energy Intake" = sum(joined_tbl()$food_intake_calories, na.rm = T),
+         "Energy Expenditure" = total_needs(),
+         "Energy Balance" = round(net_kcal()),
+         "Area below 300 kcal deficit" = auc()
+     ) %>%
+         mutate(
+             across(2:4, ~as.integer(.))
+             )
+
+})
+
+uiOutput("downloadUI")
+
+output$downloadUI <- renderUI( {
+  download_this(
+  .data = for_xport(),
+  output_name = "WDEB summary",
+  output_extension = ".xlsx",
+  button_label = "  Download data   ",
+  button_type = "default",
+  has_icon = TRUE,
+  icon = "fa fa-save"
+)
+})
+
+
+```
 
 
 # Learn
