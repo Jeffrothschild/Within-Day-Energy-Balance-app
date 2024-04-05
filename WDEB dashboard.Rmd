@@ -9,6 +9,7 @@ resource_files:
 - img/AMPK app.png
 - img/CPI app.png
 - img/RER app.png
+- "img/coffee-violet.png"
 ---
 
 ```{r setup, include=FALSE}
@@ -97,6 +98,11 @@ p {
     color: #333333;
 }
 
+
+a {
+    color: #bb0077;
+    text-decoration: none;
+}
 
 .section-level2-dashboard-column{
     font-size: 32px;
@@ -575,7 +581,7 @@ renderText(paste0(total_needs(), " kcal"))
 
 ### Want to download a summary?
 
-```{r}
+```{r, fig.height=0.75}
 
  for_xport <- reactive({
      tibble(
@@ -607,6 +613,13 @@ output$downloadUI <- renderUI( {
 
 
 ```
+
+
+### Enjoying the app?
+
+This app is free to use, but not to host. If you find it useful and would like to help offset the cost of it, you can support my work via <a href="https://www.buymeacoffee.com/9GH8czJkN7" target="_blank">Buy Me a Coffee</a>.
+
+
 
 
 # Learn
@@ -696,9 +709,6 @@ Column {data-width=200}
 ```{r AMPK, echo = F, out.width = '90%'}
 
 renderImage({
-    
-    #
-   
    list(
        src = "img/AMPK app.jpg",
        contentType = "image/png",
@@ -706,12 +716,25 @@ renderImage({
        alt = "AMPK app"
    )
 }, deleteFile = F )
-# knitr::include_graphics("AMPK app.png", error = FALSE)
+
+
+# knitr::include_graphics("AMPK_app.jpg", error = FALSE)
 ```
 
 
-<br>
 
-
+```{r}
+tags$a(href = "https://www.buymeacoffee.com/9GH8czJkN7",
+         target = "_blank",
+       renderImage({
+         list(
+           src = "img/coffee-violet.png",
+           contentType = "image/png",
+           width = "70%",
+           alt = "coffee"
+         )
+       }, deleteFile = F)
+)
+```
 
 
